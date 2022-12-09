@@ -4,12 +4,8 @@ Main TFStateResourceSwapper script.
 import sys
 import argparse
 
-# from tf_resource import TerraformResource
 from tf_state import TerraformState
 
-
-# bucket_name = 20210324-jarvis-platform-dev-states
-# object_name = jarvis-nonprod
 
 def arg_parser():
     parser = argparse.ArgumentParser()
@@ -46,8 +42,10 @@ def main() -> None:
     a_broker_listeners = state_a.getByQuery({"name": "nlb_broker_listeners"})
     a_service_listeners = state_a.getByQuery({"name": "nlb_service_listeners"})
     a_broker_certificate = state_a.getByQuery({"name": "nlb_certificate"})
-    a_acm_certificate_validation = state_a.getByQuery(query={"name": "nlb_certificate_validation", "type": "aws_acm_certificate_validation"})
-    a_route53_certificate_validation = state_a.getByQuery(query={"name": "nlb_certificate_validation", "type": "aws_route53_record"})
+    a_acm_certificate_validation = state_a.getByQuery(
+        query={"name": "nlb_certificate_validation", "type": "aws_acm_certificate_validation"})
+    a_route53_certificate_validation = state_a.getByQuery(
+        query={"name": "nlb_certificate_validation", "type": "aws_route53_record"})
     a_nlb_domain = state_a.getByQuery({"name": "nlb_domain"})
     a_nlb_service = state_a.getByQuery({"name": "nlb_service"})
     a_nlb = state_a.getByQuery({"name": "nlb"})
@@ -72,36 +70,10 @@ def main() -> None:
 
     state_b.save(dst="modified")
     # state_b.upload(source="modified")
-    ############
-
-    ## tests:
-    # state.create_tmp_file()
-    # resource = TerraformResource(name="nlb", state_dict=state.load_file())
-    # nlb_a = resource.get()
-    # resource = state.TerraformResource(name="nlb", state_dict=state.dict)
-
-    # resource = state.getByQuery({"name": "cruisecontrol_configmap"})
-    # print(resource)
-    # state.create_tmp_file()
-    # state.addResource(new_data=resource[0])
-
-    # resource = state.getByQuery({"name": "nlb"})
-    # print(resource)
-
-    # resource.print()
-    # resource.remove()
-
-    # state = resource.remove()
-    # state.resource(name="nlb").print()
-    # state.resource.print()
 
 
 if __name__ == '__main__':
     import logging.config
-
-    # Setting up Logger
-
-    # logging.config.fileConfig('/path/to/logging.conf')
 
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)

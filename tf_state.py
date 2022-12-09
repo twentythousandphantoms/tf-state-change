@@ -69,7 +69,7 @@ class TerraformState:
             logger.info(f'The file is copied to {tmp_file}')
 
         with(open(tmp_file, 'r')) as file:
-            logger.info(f'Working with the file {tmp_file}')
+            logger.debug(f'Working with the file {tmp_file}')
             self.dict = json.load(file)
 
         return tmp_file
@@ -127,7 +127,7 @@ class TerraformState:
         prefix = self.create_folder(dst)
         path = os.path.join(prefix, self.object, self.name)
         shutil.copyfile(src=self.tmp_file, dst=path)
-        logger.info(f'The file is copied to {path}')
+        logger.info(f'The state is saved to {path}')
         if rm_tmp:
             os.remove(self.tmp_file)
         return True
@@ -249,12 +249,12 @@ class TerraformState:
                 if new_instances:
                     resource["instances"] = new_instances
                     result.append(resource)
-                    logger.info(f'The resource {filter} is updated with the instances: {new_instances}')
+                    logger.info(f'The resource {query} is updated with the instances: {new_instances}')
             else:
                 result.append(resource)
         if not found:
             logger.error(
-                f'There is no resource matching the given filter {filter} in the state, hence it is not updated')
+                f'There is no resource matching the given filter {query} in the state, hence it is not updated')
         else:
             self.tmp_file = self.create_tmp_file()
             with open(self.tmp_file, "w", encoding='utf-8') as state_file:

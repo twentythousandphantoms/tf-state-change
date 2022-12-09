@@ -7,7 +7,6 @@ import argparse
 from tf_state import TerraformState
 
 
-
 def arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--states', nargs='+', help='List of state files to work with', required=True)
@@ -30,13 +29,37 @@ def upload_states(states):
         state.upload(source='modified')
 
 
+def replaceResourceInstancesAttributes(state_a,
+                                       state_b,
+                                       resource_filter,
+                                       attribute_name,
+                                       match_instances_by="index_key"):
+    instances_a = state_a.getResourceInstances(query=resource_filter)
+    instances_b = state_b.getResourceInstances(query=resource_filter)
+    instances_b_updated = []
+
+    if len(instances_a) == len(instances_b):
+        for instance_a in instances_a:
+
+            attribute_value_a = state_a.getInstanceAttrValue(instance=instance_a,
+                                                             attribute_key=attribute_name)
+
+            for instance_b in instances_b:
+                if instance_b["attributes"][match_instances_by] == instance_a["attributes"][match_instances_by]:
+                    instance_b_updated = state_b.updateInstanceAttr(instance=instance_b,
+                                                                    attribute_key=attribute_name,
+                                                                    attribute_value=attribute_value_a)
+                    instances_b_updated.append(instance_b_updated)
+    return instances_b_updated
+
+
 def main() -> None:
     """
     This function performs the Terraform resources swapping between Terraform states
     :return: None
     """
 
-    states = arg_parser()
+    states, dry_run = arg_parser()
     download_states(states)
 
     ###############

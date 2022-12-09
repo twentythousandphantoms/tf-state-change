@@ -32,7 +32,7 @@ class TerraformState:
         self.dl_prefix = 'downloads'
         self.object = 'jarvis-nonprod'
         self.file = os.path.join(self.dl_prefix, self.object, self.name)
-        self.dict = self.from_file()
+        self.dict = None
         self.tmp_file = None
         # self.resource = TerraformResource(name="nlb_service_listeners", state_dict=self.dict)
 
@@ -144,6 +144,7 @@ class TerraformState:
             f.write(s)
 
     def getByQuery(self, query: Dict[str, Any]) -> List[Dict[str, Any]]:
+        self.dict = self.from_file()
         result = []
         for resource in self.dict['resources']:
             if all(x in resource and resource[x] == query[x] for x in query):
@@ -160,6 +161,7 @@ class TerraformState:
         return self.dict
 
     def deleteByQuery(self, query: Dict[str, Any]) -> list:
+        self.dict = self.from_file()
         found, result = [], []
         for resource in self.dict["resources"]:
             if all(x in resource and resource[x] == query[x] for x in query):

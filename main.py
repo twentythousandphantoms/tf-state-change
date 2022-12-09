@@ -42,26 +42,36 @@ def main() -> None:
     ###############
     state_a = TerraformState(filename=states[0])
     state_b = TerraformState(filename=states[1])
-    state_b.deleteByQuery({"name": "nlb"})
+
     a_broker_listeners = state_a.getByQuery({"name": "nlb_broker_listeners"})
     a_service_listeners = state_a.getByQuery({"name": "nlb_service_listeners"})
     a_broker_certificate = state_a.getByQuery({"name": "nlb_certificate"})
-    a_broker_certificate_validation = state_a.getByQuery({"name": "nlb_certificate_validation"})
-    # print(f'Got resource {a_broker_listeners}')
-    # print(f'Got resource {a_service_listeners}')
-    # print(f'Got resource {a_broker_certificate}')
-    # print(f'Got resource {a_broker_certificate_validation}')
+    a_acm_certificate_validation = state_a.getByQuery(query={"name": "nlb_certificate_validation", "type": "aws_acm_certificate_validation"})
+    a_route53_certificate_validation = state_a.getByQuery(query={"name": "nlb_certificate_validation", "type": "aws_route53_record"})
+    a_nlb_domain = state_a.getByQuery({"name": "nlb_domain"})
+    a_nlb_service = state_a.getByQuery({"name": "nlb_service"})
+    a_nlb = state_a.getByQuery({"name": "nlb"})
 
     state_b.deleteByQuery({"name": "nlb_broker_listeners"})
     state_b.deleteByQuery({"name": "nlb_service_listeners"})
     state_b.deleteByQuery({"name": "nlb_certificate"})
-    state_b.deleteByQuery({"name": "nlb_certificate_validation"})
+    state_b.deleteByQuery(query={"name": "nlb_certificate_validation", "type": "aws_acm_certificate_validation"})
+    state_b.deleteByQuery(query={"name": "nlb_certificate_validation", "type": "aws_route53_record"})
+    state_b.deleteByQuery({"name": "nlb_domain"})
+    state_b.deleteByQuery({"name": "nlb_service"})
+    state_b.deleteByQuery({"name": "nlb"})
+
     state_b.addResource(a_broker_listeners[0])
     state_b.addResource(a_service_listeners[0])
     state_b.addResource(a_broker_certificate[0])
-    state_b.addResource(a_broker_certificate_validation[0])
+    state_b.addResource(a_acm_certificate_validation[0])
+    state_b.addResource(a_route53_certificate_validation[0])
+    state_b.addResource(a_nlb_domain[0])
+    state_b.addResource(a_nlb_service[0])
+    state_b.addResource(a_nlb[0])
+
     state_b.save(dst="modified")
-    state_b.upload(source="modified")
+    # state_b.upload(source="modified")
     ############
 
     ## tests:

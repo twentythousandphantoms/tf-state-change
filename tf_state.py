@@ -12,7 +12,7 @@ import botocore
 
 import logging
 
-# from tf_resource import TerraformResource
+from state_errors import SchemaError, DataNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -149,6 +149,9 @@ class TerraformState:
         for resource in self.dict['resources']:
             if all(x in resource and resource[x] == query[x] for x in query):
                 result.append(resource)
+
+        if not result:
+            raise DataNotFoundError(query)
         return result
 
     def addResource(self, new_data: Dict[str, Any]) -> dict:
@@ -166,7 +169,6 @@ class TerraformState:
         for resource in self.dict["resources"]:
             if all(x in resource and resource[x] == query[x] for x in query):
                 found.append(resource)
-                # TODO: save the deleted resources to "deleted" directory. Just in case...
             else:
                 result.append(resource)
 
@@ -178,5 +180,85 @@ class TerraformState:
                 json.dump(self.dict, state_file, indent=2)
             return found
         else:
-            logger.info(f'No resources found by query: {query}')
+            raise DataNotFoundError(query)
 
+    def getResourceInstances(self, query: Dict[str, Any]) -> list:
+        result = []
+        for resource in self.dict['resources']:
+            if all(x in resource and resource[x] == query[x] for x in query):
+                result.append(resource["instances"])
+        return result[0]
+
+    @staticmethod
+    def printDict(d: Dict):
+        print(json.dumps(d, indent=2))
+
+    @staticmethod
+    def getInstanceAttrValue(instance: Dict[str, Any], attribute_key: str):
+        attr_value = instance["attributes"].get(attribute_key)
+        return attr_value
+
+    @staticmethod
+    def rmInstanceAttr(instance: Dict[str, Any], attribute_key: str) -> Dict[str, Any]:
+        attr_dict = instance.get("attributes")
+
+        if attribute_key in attr_dict.keys():
+            attr_dict.pop(attribute_key)
+            logger.debug(f'Instance: {instance.get("index_key")} - Delete attribute by key: {attribute_key}')
+        else:
+            logger.info(f'No attributes found by attribute_key: {attribute_key} in instance {instance}')
+
+        instance.pop("attributes")
+        instance["attributes"] = attr_dict
+
+        return instance
+
+    @staticmethod
+    def addInstanceAttr(instance: Dict[str, Any], attribute_key: str, attribute_value):
+        instance["attributes"].update({attribute_key: attribute_value})
+        logger.debug(f'Instance: {instance.get("index_key")} - Add new attribute {attribute_key}')
+        return instance
+
+    def updateInstanceAttr(self, instance: Dict[str, Any], attribute_key: str, attribute_value: Dict[str, Any]) -> \
+            Dict[str, Any]:
+        instance_after_attr_removal = self.rmInstanceAttr(instance=instance,
+                                                          attribute_key=attribute_key)
+
+        instance_with_attr_updated = self.addInstanceAttr(instance=instance_after_attr_removal,
+                                                          attribute_key=attribute_key,
+                                                          attribute_value=attribute_value)
+        return instance_with_attr_updated
+
+    def updateByQuery(self, query: Dict[str, Any], new_resource=None, new_instances=None) -> bool:
+        result = []
+        found = False
+
+        for resource in self.dict["resources"]:
+            if all(x in resource and resource[x] == query[x] for x in query):
+                found = True
+                if new_resource:
+                    if set(new_resource.keys()).issubset(resource.keys()):
+                        result.append(new_resource)
+                        logger.info(f'The resource {query} is replaced by: {new_resource}')
+                    else:
+                        raise SchemaError(
+                            "original resource keys: " + ",".join(sorted(list(resource.keys()))),
+                            "new_resource keys: "
+                            + ",".join(sorted(list(new_resource.keys()))),
+                        )
+                if new_instances:
+                    resource["instances"] = new_instances
+                    result.append(resource)
+                    logger.info(f'The resource {filter} is updated with the instances: {new_instances}')
+            else:
+                result.append(resource)
+        if not found:
+            logger.error(
+                f'There is no resource matching the given filter {filter} in the state, hence it is not updated')
+        else:
+            self.tmp_file = self.create_tmp_file()
+            with open(self.tmp_file, "w", encoding='utf-8') as state_file:
+                self.dict["resources"] = result
+                json.dump(self.dict, state_file, indent=2)
+            self.inplace_change(self.tmp_file)
+        return found

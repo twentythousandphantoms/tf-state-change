@@ -18,13 +18,22 @@ or
 awsmyid --login
 ```
 
-Run:
+Usage:
 ```
-python main.py --states region-cluster-a-main.tfstate region-cluster-b-main.tfstate
+(venv) ab@ANDREIs-MacBook-Pro tf-state-change % python main.py -h
+usage: main.py [-h] --states STATES [STATES ...] [--dry-run]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --states STATES [STATES ...]
+                        List of state files to work with
+  --dry-run             Run without uploading state back to S3. The changes will be saved to a new "modified" directory
+
 ```
 
 Example:
 ```
+python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate --dry-run
 python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate
 ```
 

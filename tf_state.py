@@ -255,6 +255,7 @@ class TerraformState:
         if not found:
             logger.error(
                 f'There is no resource matching the given filter {query} in the state, hence it is not updated')
+            exit(1)
         else:
             self.tmp_file = self.create_tmp_file()
             with open(self.tmp_file, "w", encoding='utf-8') as state_file:

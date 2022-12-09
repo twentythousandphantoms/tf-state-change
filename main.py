@@ -7,11 +7,15 @@ import argparse
 from tf_state import TerraformState
 
 
+
 def arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--states', nargs='+', help='List of state files to work with', required=True)
+    parser.add_argument('--dry-run', help='Run without uploading state back to S3. The changes will be saved to a new '
+                                          '"modified" directory',
+                        required=False, action="store_true", dest="dry_run")
     args = parser.parse_args()
-    return args.states
+    return args.states, args.dry_run
 
 
 def download_states(states):
@@ -69,7 +73,8 @@ def main() -> None:
     state_b.addResource(a_nlb[0])
 
     state_b.save(dst="modified")
-    # state_b.upload(source="modified")
+    if not dry_run:
+        state_b.upload(source="modified")
 
 
 if __name__ == '__main__':

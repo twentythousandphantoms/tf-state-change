@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class TerraformState:
 
-    def __init__(self, filename):
+    def __init__(self, filename, region):
         """
         Init the Terraform State object
 
@@ -27,7 +27,7 @@ class TerraformState:
         """
 
         self.name = filename
-        self.s3_resource = boto3.resource('s3', region_name='us-east-1')
+        self.s3_resource = boto3.resource('s3', region_name=region)
         self.s3_bucket = self.s3_resource.Bucket('20210324-jarvis-platform-dev-states')
         self.dl_prefix = 'downloads'
         self.object = 'jarvis-nonprod'
@@ -56,9 +56,12 @@ class TerraformState:
             logger.info(f'The directory {full_path} exists')
         return name
 
+    def load(self):
+        self.dict = self.from_file()
+
     def from_file(self):
         with(open(self.file, 'r', encoding='ASCII')) as file:
-            logger.info(f'Working with the file {self.file}')
+            logger.debug(f'Working with the file {self.file}')
             self.dict = json.load(file)
         return self.dict
 
@@ -148,6 +151,7 @@ class TerraformState:
         result = []
         for resource in self.dict['resources']:
             if all(x in resource and resource[x] == query[x] for x in query):
+                logger.info(f'Found the {query} in {self.name}')
                 result.append(resource)
 
         if not result:
@@ -184,9 +188,19 @@ class TerraformState:
 
     def getResourceInstances(self, query: Dict[str, Any]) -> list:
         result = []
+        # self.printDict(self.dict['resources'])
+        logger.debug(f'Query: {query}')
+        logger.debug(dir(self.dict['resources']))
+        logger.debug(type(self.dict['resources']))
+        counter = 0
         for resource in self.dict['resources']:
+            counter = counter + 1
+            logger.debug(f"test {counter}")
             if all(x in resource and resource[x] == query[x] for x in query):
+                logger.debug(f"found the {query}!")
                 result.append(resource["instances"])
+        if len(result[0]) < 1:
+            logger.error(f'Did not found such a resource: {query}')
         return result[0]
 
     @staticmethod
@@ -239,7 +253,8 @@ class TerraformState:
                 if new_resource:
                     if set(new_resource.keys()).issubset(resource.keys()):
                         result.append(new_resource)
-                        logger.info(f'The resource {query} is replaced by: {new_resource}')
+                        logger.info(f'The resource {query} is replaced in {self.name}')
+                        logger.debug(f'The resource {query} is replaced in {self.name} by: {new_resource}')
                     else:
                         raise SchemaError(
                             "original resource keys: " + ",".join(sorted(list(resource.keys()))),
@@ -254,7 +269,8 @@ class TerraformState:
                 result.append(resource)
         if not found:
             logger.error(
-                f'There is no resource matching the given filter {query} in the state, hence it is not updated')
+                f'There is no resource matching the given filter {query} in the state {self.name},'
+                f' hence it is not updated')
             exit(1)
         else:
             self.tmp_file = self.create_tmp_file()

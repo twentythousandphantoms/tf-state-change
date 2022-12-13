@@ -35,14 +35,13 @@ awsmyid --login
 Usage:
 ```
 (venv) ab@ANDREIs-MacBook-Pro tf-state-change % python main.py -h
-usage: main.py [-h] --states STATES [STATES ...] [--dry-run]
+usage: main.py [-h] --states STATE STATE --region REGION [--dry-run]
 
 optional arguments:
   -h, --help            show this help message and exit
-  --states STATES [STATES ...]
-                        List of state files to work with
+  --states STATE STATE  Cluster_a and cluster_b state files names to work with
+  --region REGION       AWS Region
   --dry-run             Run without uploading state back to S3. The changes will be saved to a new "modified" directory
-
 ```
 
 Example:

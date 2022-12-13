@@ -9,12 +9,13 @@ from tf_state import TerraformState
 
 def arg_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--states', nargs='+', help='List of state files to work with', required=True)
+    parser.add_argument('--states', nargs=2, help='List of state files to work with', required=True)
+    parser.add_argument('--region', nargs=1, help='AWS Region', required=True)
     parser.add_argument('--dry-run', help='Run without uploading state back to S3. The changes will be saved to a new '
                                           '"modified" directory',
                         required=False, action="store_true", dest="dry_run")
     args = parser.parse_args()
-    return args.states, args.dry_run
+    return args.states, args.region, args.dry_run
 
 
 def download_states(states):
@@ -46,16 +47,19 @@ def replaceResourceInstancesAttributes(state_a,
     :return: Returns the updated state_a instances
     :rtype: List[Dict]
     """
+    logger.info(f'Replacing {resource_filter} instances attribute: "{attribute_name}"')
     instances_a = state_a.getResourceInstances(query=resource_filter)
+    logger.debug(f'Got the instances_a: {instances_a}')
     instances_b = state_b.getResourceInstances(query=resource_filter)
+    logger.debug(f'Got the instances_b: {instances_b}')
     instances_a_updated = []
 
     if len(instances_a) == len(instances_b):
+        logger.info('So far so good')
         for instance_b in instances_b:
 
             attribute_value_b = state_b.getInstanceAttrValue(instance=instance_b,
                                                              attribute_key=attribute_name)
-
             for instance_a in instances_a:
                 if instance_a["attributes"][match_instances_by] == instance_b["attributes"][match_instances_by]:
                     instance_a_updated = state_a.updateInstanceAttr(instance=instance_a,
@@ -71,12 +75,18 @@ def main() -> None:
     :return: None
     """
 
-    states, dry_run = arg_parser()
+    states, region, dry_run = arg_parser()
     download_states(states)
 
     ###############
-    state_a = TerraformState(filename=states[0])
+    state_a = TerraformState(filename=states[0], region=region)
+    state_a.load()
+    logger.info(f'The state_a loaded.')
+    logger.info(f'The state_a resources len: {len(state_a.dict["resources"])}.')
     state_b = TerraformState(filename=states[1])
+    state_b.load()
+    logger.info(f'The state_b loaded.')
+    logger.info(f'The state_b resources len: {len(state_b.dict["resources"])}.')
 
     # Get resources from state_a
     a_nlb = state_a.getByQuery({"name": "nlb"})
@@ -101,7 +111,7 @@ def main() -> None:
     a_service_listeners[0]["instances"] = replaceResourceInstancesAttributes(state_a=state_a,
                                                                              state_b=state_b,
                                                                              resource_filter={
-                                                                                 "name": "nlb_broker_listeners"},
+                                                                                 "name": "nlb_service_listeners"},
                                                                              attribute_name="default_action",
                                                                              match_instances_by="port")
     # Update resources in state_b

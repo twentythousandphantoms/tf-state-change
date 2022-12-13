@@ -81,11 +81,11 @@ def main() -> None:
     ###############
     state_a = TerraformState(filename=states[0], region=region)
     state_a.load()
-    logger.info(f'The state_a loaded.')
+    logger.info(f'The state_a is loaded.')
     logger.info(f'The state_a resources len: {len(state_a.dict["resources"])}.')
     state_b = TerraformState(filename=states[1])
     state_b.load()
-    logger.info(f'The state_b loaded.')
+    logger.info(f'The state_b is loaded.')
     logger.info(f'The state_b resources len: {len(state_b.dict["resources"])}.')
 
     # Get resources from state_a

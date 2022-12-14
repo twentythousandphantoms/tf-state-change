@@ -15,7 +15,7 @@ def arg_parser():
                                           '"modified" directory',
                         required=False, action="store_true", dest="dry_run")
     args = parser.parse_args()
-    return args.states, args.region, args.dry_run
+    return args.states, args.region[0], args.dry_run
 
 
 def download_states(states, region):

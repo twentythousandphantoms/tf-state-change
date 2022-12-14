@@ -18,15 +18,15 @@ def arg_parser():
     return args.states, args.region, args.dry_run
 
 
-def download_states(states):
+def download_states(states, region):
     for name in states:
-        state = TerraformState(name)
+        state = TerraformState(filename=name, region=region)
         state.download()
 
 
-def upload_states(states):
+def upload_states(states, region):
     for name in states:
-        state = TerraformState(name)
+        state = TerraformState(filename=name, region=region)
         state.upload(source='modified')
 
 
@@ -76,7 +76,7 @@ def main() -> None:
     """
 
     states, region, dry_run = arg_parser()
-    download_states(states)
+    download_states(states=states, region=region)
 
     ###############
     state_a = TerraformState(filename=states[0], region=region)
@@ -132,7 +132,7 @@ def main() -> None:
     # Apply the updated state_b
     state_b.save(dst="modified")
     if not dry_run:
-        state_b.upload(source="modified")
+        state_b.upload(source="modified", region=region)
 
 
 if __name__ == '__main__':

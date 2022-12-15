@@ -24,12 +24,6 @@ def download_states(states, region):
         state.download()
 
 
-def upload_states(states, region):
-    for name in states:
-        state = TerraformState(filename=name, region=region)
-        state.upload(source='modified')
-
-
 def replaceResourceInstancesAttributes(state_a,
                                        state_b,
                                        resource_filter,
@@ -132,7 +126,7 @@ def main() -> None:
     # Apply the updated state_b
     state_b.save(dst="modified")
     if not dry_run:
-        state_b.upload(source="modified", region=region)
+        state_b.upload(source="modified")
 
 
 if __name__ == '__main__':

@@ -10,17 +10,17 @@ from tf_state import TerraformState
 def arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--states', nargs=2, help='List of state files to work with', required=True)
-    parser.add_argument('--region', nargs=1, help='AWS Region', required=True)
+    parser.add_argument('--env', nargs=1, help='nonprod or prod', required=True)
     parser.add_argument('--dry-run', help='Run without uploading state back to S3. The changes will be saved to a new '
                                           '"modified" directory',
                         required=False, action="store_true", dest="dry_run")
     args = parser.parse_args()
-    return args.states, args.region[0], args.dry_run
+    return args.states, args.env[0], args.dry_run
 
 
-def download_states(states, region):
+def download_states(states, env):
     for name in states:
-        state = TerraformState(filename=name, region=region)
+        state = TerraformState(filename=name, env=env)
         state.download()
 
 
@@ -69,15 +69,15 @@ def main() -> None:
     :return: None
     """
 
-    states, region, dry_run = arg_parser()
-    download_states(states=states, region=region)
+    states, env, dry_run = arg_parser()
+    download_states(states=states, env=env)
 
     ###############
-    state_a = TerraformState(filename=states[0], region=region)
+    state_a = TerraformState(filename=states[0], env=env)
     state_a.load()
     logger.info(f'The state_a is loaded.')
     logger.info(f'The state_a resources len: {len(state_a.dict["resources"])}.')
-    state_b = TerraformState(filename=states[1], region=region)
+    state_b = TerraformState(filename=states[1], env=env)
     state_b.load()
     logger.info(f'The state_b is loaded.')
     logger.info(f'The state_b resources len: {len(state_b.dict["resources"])}.')

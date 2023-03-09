@@ -35,22 +35,21 @@ awsmyid --login
 Usage:
 ```
 (venv) ab@ANDREIs-MacBook-Pro tf-state-change % python main.py -h
-usage: main.py [-h] --states STATE STATE --region REGION [--dry-run]
+usage: main.py [-h] --states STATE STATE --env ENV [--dry-run]
 
 optional arguments:
   -h, --help            show this help message and exit
   --states STATE STATE  Cluster_a and cluster_b state files names to work with
-  --region REGION       AWS Region
+  --env ENV             'nonprod' or 'prod'
   --dry-run             Run without uploading state back to S3. The changes will be saved to a new "modified" directory
 ```
 
 Example:
 ```
-python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate --dry-run
-python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate
+python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate --env nonprod --dry-run
+python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate --env nonprod
 ```
 
 TODO:
 -
-1. _make s3 object_name and bucket_name customizable to support AWS Prod account_
 2. _backup delete resources_

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class TerraformState:
 
-    def __init__(self, filename, region, env="nonprod"):
+    def __init__(self, filename, env="nonprod"):
         """
         Init the Terraform State object
 
@@ -29,7 +29,6 @@ class TerraformState:
         self.name = filename
         self.s3_resource = boto3.resource('s3', region_name='us-east-1')
         self.dl_prefix = 'downloads'
-        self.file = os.path.join(self.dl_prefix, self.object, self.name)
         self.dict = None
         self.tmp_file = None
 
@@ -39,6 +38,8 @@ class TerraformState:
         elif env == "prod":
             self.s3_bucket = self.s3_resource.Bucket('20210517-jarvis-platform-prod-states')
             self.object = 'jarvis-prod'
+
+        self.file = os.path.join(self.dl_prefix, self.object, self.name)
 
     def create_folder(self, name: str) -> True:
         """
@@ -51,7 +52,8 @@ class TerraformState:
         full_path = os.path.join(name, self.object)
         if not os.path.exists(full_path):
             try:
-                os.mkdir(name)
+                if not os.path.exists(name):
+                    os.mkdir(name)
                 os.mkdir(full_path)
                 logger.info(f'The directory {full_path} is created')
             except OSError:

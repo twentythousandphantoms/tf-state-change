@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class TerraformState:
 
-    def __init__(self, filename, region):
+    def __init__(self, filename, region, env="nonprod"):
         """
         Init the Terraform State object
 
@@ -27,14 +27,18 @@ class TerraformState:
         """
 
         self.name = filename
-        self.s3_resource = boto3.resource('s3', region_name=region)
-        self.s3_bucket = self.s3_resource.Bucket('20210324-jarvis-platform-dev-states')
+        self.s3_resource = boto3.resource('s3', region_name='us-east-1')
         self.dl_prefix = 'downloads'
-        self.object = 'jarvis-nonprod'
         self.file = os.path.join(self.dl_prefix, self.object, self.name)
         self.dict = None
         self.tmp_file = None
-        # self.resource = TerraformResource(name="nlb_service_listeners", state_dict=self.dict)
+
+        if env == "nonprod":
+            self.s3_bucket = self.s3_resource.Bucket('20210324-jarvis-platform-dev-states')
+            self.object = 'jarvis-nonprod'
+        elif env == "prod":
+            self.s3_bucket = self.s3_resource.Bucket('20210517-jarvis-platform-prod-states')
+            self.object = 'jarvis-prod'
 
     def create_folder(self, name: str) -> True:
         """

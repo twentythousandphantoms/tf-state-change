@@ -14,8 +14,10 @@ def arg_parser():
     parser.add_argument('--dry-run', help='Run without uploading state back to S3. The changes will be saved to a new '
                                           '"modified" directory',
                         required=False, action="store_true", dest="dry_run")
+    parser.add_argument('--prometheus', help='Set this parameter if prometheus ingress enabled in target clusters',
+                        required=False, action="store_true", dest="prom_ingress_enabled")
     args = parser.parse_args()
-    return args.states, args.env[0], args.dry_run
+    return args.states, args.env[0], args.dry_run, args.prom_ingress_enabled
 
 
 def download_states(states, env):
@@ -63,29 +65,11 @@ def replaceResourceInstancesAttributes(state_a,
     return instances_a_updated
 
 
-def main() -> None:
-    """
-    This function performs the Terraform resources swapping between Terraform states
-    :return: None
-    """
-
-    states, env, dry_run = arg_parser()
-    download_states(states=states, env=env)
-
-    ###############
-    state_a = TerraformState(filename=states[0], env=env)
-    state_a.load()
-    logger.info(f'The state_a is loaded.')
-    logger.info(f'The state_a resources len: {len(state_a.dict["resources"])}.')
-    state_b = TerraformState(filename=states[1], env=env)
-    state_b.load()
-    logger.info(f'The state_b is loaded.')
-    logger.info(f'The state_b resources len: {len(state_b.dict["resources"])}.')
-
+def swapKafkaNLB(state_a, state_b):
     # Get resources from state_a
-    a_nlb = state_a.getByQuery({"name": "nlb"})
+    a_nlb = state_a.getByQuery({"name": "nlb", "module": "module.aws_networking[0]"})
     a_nlb_domain = state_a.getByQuery({"name": "nlb_domain"})
-    a_nlb_service = state_a.getByQuery({"name": "nlb_service"})
+    a_nlb_service = state_a.getByQuery({"name": "nlb_service", "module": "module.aws_networking[0]"})
     a_broker_certificate = state_a.getByQuery({"name": "nlb_certificate"})
     a_route53_certificate_validation = state_a.getByQuery(
         query={"name": "nlb_certificate_validation", "type": "aws_route53_record"})
@@ -109,9 +93,9 @@ def main() -> None:
                                                                              attribute_name="default_action",
                                                                              match_instances_by="port")
     # Update resources in state_b
-    state_b.updateByQuery(query={"name": "nlb"}, new_resource=a_nlb[0])
+    state_b.updateByQuery(query={"name": "nlb", "module": "module.aws_networking[0]"}, new_resource=a_nlb[0])
     state_b.updateByQuery(query={"name": "nlb_domain"}, new_resource=a_nlb_domain[0])
-    state_b.updateByQuery(query={"name": "nlb_service"}, new_resource=a_nlb_service[0])
+    state_b.updateByQuery(query={"name": "nlb_service", "module": "module.aws_networking[0]"}, new_resource=a_nlb_service[0])
     state_b.updateByQuery(query={"name": "nlb_certificate"}, new_resource=a_broker_certificate[0])
     state_b.updateByQuery(query={"name": "nlb_certificate_validation", "type": "aws_route53_record"},
                           new_resource=a_route53_certificate_validation[0])
@@ -125,6 +109,60 @@ def main() -> None:
 
     # Apply the updated state_b
     state_b.save(dst="modified")
+
+
+def swapPrometheusNLB(state_a, state_b):
+    # # Get resources from state_a
+    a_nlb = state_a.getByQuery({"name": "nlb", "module": "module.prometheus[0].module.ingress[0]"})
+    a_nlb_domain = state_a.getByQuery({"name": "internal_record_set", "module": "module.prometheus[0].module.ingress[0]"})
+    a_nlb_service = state_a.getByQuery({"name": "nlb_service", "module": "module.prometheus[0].module.ingress[0]"})
+    a_broker_listeners = state_a.getByQuery({"name": "nlb_listeners", "module": "module.prometheus[0].module.ingress[0]"})
+
+    # Update listeners with target groups of cluster b
+    a_broker_listeners[0]["instances"] = replaceResourceInstancesAttributes(state_a=state_a,
+                                                                            state_b=state_b,
+                                                                            resource_filter={
+                                                                                "name": "nlb_listeners",
+                                                                                "module": "module.prometheus[0].module.ingress[0]"},
+                                                                            attribute_name="default_action",
+                                                                            match_instances_by="port")
+    # Update resources in state_b
+    state_b.updateByQuery(query={"name": "nlb", "module": "module.prometheus[0].module.ingress[0]"}, new_resource=a_nlb[0])
+    state_b.updateByQuery(query={"name": "internal_record_set", "module": "module.prometheus[0].module.ingress[0]"},
+                          new_resource=a_nlb_domain[0])
+    state_b.updateByQuery(query={"name": "nlb_service", "module": "module.prometheus[0].module.ingress[0]"},
+                          new_resource=a_nlb_service[0])
+
+    state_b.updateByQuery(query={"name": "nlb_listeners", "module": "module.prometheus[0].module.ingress[0]"},
+                          new_resource=a_broker_listeners[0])
+
+    # Apply the updated state_b
+    state_b.save(dst="modified")
+
+
+def main() -> None:
+    """
+    This function performs the Terraform resources swapping between Terraform states
+    :return: None
+    """
+
+    states, env, dry_run, prom_ingress_enabled = arg_parser()
+    download_states(states=states, env=env)
+
+    ###############
+    state_a = TerraformState(filename=states[0], env=env)
+    state_a.load()
+    logger.info(f'The state_a is loaded.')
+    logger.info(f'The state_a resources len: {len(state_a.dict["resources"])}.')
+    state_b = TerraformState(filename=states[1], env=env)
+    state_b.load()
+    logger.info(f'The state_b is loaded.')
+    logger.info(f'The state_b resources len: {len(state_b.dict["resources"])}.')
+
+    swapKafkaNLB(state_a, state_b)
+    if prom_ingress_enabled:
+        swapPrometheusNLB(state_a, state_b)
+
     if not dry_run:
         state_b.upload(source="modified")
 

@@ -1,6 +1,6 @@
 # tf-state-change
 
-The script performs the following*: 
+*The script performs the following*: 
 1. Downloads the states from s3
 2. Copies `nlb` from state_a to state_b 
 3. Copies `nlb_domain` from state_a to state_b
@@ -11,6 +11,12 @@ The script performs the following*:
 8. Copies `nlb_broker_listeners` from state_a to state_b **keeping target_groups of state_b**
 9. Copies `nlb_service_listeners` from state_a to state_b **keeping target_groups of state_b**
 10. Uploads the state of cluster_b to s3
+
+If you set the `--prometheus` parameter, is performs the following actions additionally:
+1. Copies `nlb` (from prometheus module) from state_a to state_b 
+2. Copies `internal_record_set` (from prometheus module) from state_a to state_b
+3. Copies `nlb_service` (from prometheus module) from state_a to state_b
+4. Copies `nlb_listeners` (from prometheus module) from state_a to state_b **keeping target_groups of state_b**
 
 _*You can customize the behaviour in the main function_
 
@@ -35,19 +41,25 @@ awsmyid --login
 Usage:
 ```
 (venv) ab@ANDREIs-MacBook-Pro tf-state-change % python main.py -h
-usage: main.py [-h] --states STATE STATE --env ENV [--dry-run]
+usage: main.py [-h] --states STATES STATES --env ENV [--dry-run] [--prometheus]                                                                                                                                                                                                                                                                                              ─╯
 
 optional arguments:
   -h, --help            show this help message and exit
-  --states STATE STATE  Cluster_a and cluster_b state files names to work with
-  --env ENV             'nonprod' or 'prod'
+  --states STATES STATES
+                        List of state files to work with
+  --env ENV             nonprod or prod
   --dry-run             Run without uploading state back to S3. The changes will be saved to a new "modified" directory
+  --prometheus          Set this parameter if prometheus ingress enabled in target clusters
 ```
 
 Example:
 ```
 python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate --env nonprod --dry-run
 python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate --env nonprod
+
+python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate --env nonprod --prometheus --dry-run
+python main.py --states us-east-1-plygnd-ab-main.tfstate us-east-1-plygnd-ab2-main.tfstate --env nonprod --prometheus
+
 ```
 
 TODO:
